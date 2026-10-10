@@ -2,6 +2,7 @@
 cover.out
 *~
 minio
+minio-cf
 !*/
 site/
 **/*.test
