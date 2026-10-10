@@ -9,14 +9,14 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
 
 	"github.com/minio/cli"
 )
 
-func main() {
+func newApp() *cli.App {
 	app := cli.NewApp()
 	app.Usage = "Minio CF Tool"
 	app.Author = "https://minio.io"
@@ -70,8 +70,8 @@ EXAMPLES:
 			cli.ShowAppHelpAndExit(ctx, 1)
 		}
 		m := make(map[string]string)
-		m["accesskey"] = ctx.GlobalString("access-key")
-		m["secretkey"] = ctx.GlobalString("secret-key")
+		m["accesskey"] = accessKey
+		m["secretkey"] = secretKey
 		subdomain := ctx.GlobalString("subdomain")
 		if subdomain != "" {
 			m["subdomain"] = subdomain
@@ -82,9 +82,11 @@ EXAMPLES:
 		if ctx.GlobalBool("s3") {
 			m["gateway"] = "s3"
 		}
-		if ctx.GlobalString("gcs") != "" {
+		gcsPath := ctx.GlobalString("gcs")
+		if gcsPath != "" {
 			m["gateway"] = "gcs"
-			b, err := ioutil.ReadFile(ctx.GlobalString("gcs"))
+			cleanPath := filepath.Clean(gcsPath)
+			b, err := os.ReadFile(cleanPath)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -94,7 +96,16 @@ EXAMPLES:
 		if err != nil {
 			log.Fatal(err)
 		}
-		fmt.Printf(`%s`, string(b))
+		writer := ctx.App.Writer
+		if writer == nil {
+			writer = os.Stdout
+		}
+		fmt.Fprintf(writer, "%s", string(b))
 	}
+	return app
+}
+
+func main() {
+	app := newApp()
 	app.Run(os.Args)
 }
